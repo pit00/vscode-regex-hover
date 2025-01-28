@@ -1,23 +1,17 @@
 {
-  "publisher": "linghaosu",
-  "author": {
-    "email": "slh001@live.cn",
-    "name": "linghao.su"
-  },
-  "name": "regex-visualizer",
-  "displayName": "Regex Visualizer",
-  "version": "0.0.6",
+  "name": "regex-hover",
+  "publisher": "pit00",
+  "displayName": "Regex Hover",
+  "icon": "icon.png",
+  "version": "0.0.7",
   "packageManager": "pnpm@7.0.1",
   "description": "",
   "license": "MIT",
   "main": "./dist/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/linghaoSu/vscode-regex-visualizer"
+    "url": "https://github.com/pit00/vscode-regex-hover"
   },
-  "files": [
-    "dist"
-  ],
   "engines": {
     "vscode": "^1.68.0"
   },
