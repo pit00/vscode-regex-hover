@@ -1,64 +1,77 @@
 {
-  "name": "regex-hover",
-  "publisher": "pit00",
-  "displayName": "Regex Hover",
-  "icon": "icon.png",
-  "version": "0.0.21",
-  "packageManager": "pnpm@7.0.1",
-  "description": "",
-  "license": "MIT",
-  "main": "./dist/index.js",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/pit00/vscode-regex-hover"
-  },
-  "engines": {
-    "vscode": "^1.68.0"
-  },
-  "activationEvents": [
-    "onStartupFinished"
-  ],
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "dev": "pnpm build --watch",
-    "pack": "vsce package --no-dependencies",
-    "lint": "eslint .",
-    "test": "vitest",
-    "build": "tsup src/index.ts --external vscode",
-    "release": "bumpp --commit --push --tag",
-    "publish": "vsce publish --no-dependencies",
-    "typecheck": "tsc --noEmit",
-    "vscode:prepublish": "pnpm build"
-  },
-  "devDependencies": {
-    "@antfu/eslint-config": "^0.25.1",
-    "@babel/types": "^7.18.4",
-    "@types/lodash": "^4.14.191",
-    "@types/node": "^17.0.41",
-    "@types/vscode": "^1.68.0",
-    "bumpp": "^7.1.1",
-    "canopy": "^0.4.0",
-    "eslint": "^8.17.0",
-    "esno": "^0.16.3",
-    "happy-dom": "^16.8.1",
-    "lodash-es": "^4.17.21",
-    "lodash-unified": "^1.0.3",
-    "pnpm": "^9.15.4",
-    "regulex": "^0.0.5",
-    "rimraf": "^3.0.2",
-    "snapsvg": "^0.5.1",
-    "svg-path-bbox": "^1.2.4",
-    "tsup": "^6.7.0",
-    "typescript": "^4.7.3",
-    "vite": "^6.0.11",
-    "vitest": "^3.0.4",
-    "vsce": "^1.97.0"
-  },
-  "pnpm": {
-    "patchedDependencies": {
-      "happy-dom@8.9.0": "patches/happy-dom@8.9.0.patch"
+    "name": "regex-hover",
+    "publisher": "pit00",
+    "displayName": "Regex Hover",
+    "icon": "icon.png",
+    "version": "0.0.8",
+    "packageManager": "pnpm@7.0.1",
+    "description": "",
+    "license": "MIT",
+    "main": "./dist/index.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/pit00/vscode-regex-hover"
+    },
+    "engines": {
+        "vscode": "^1.68.0"
+    },
+    "activationEvents": [
+        "onStartupFinished"
+    ],
+    "files": [
+        "dist",
+        "LICENSE",
+        "icon.png"
+    ],
+    "contributes": {
+        "configuration": {
+            "properties": {
+                "regex-hover.darkTheme": {
+                    "type": "boolean",
+                    "default": true
+                }
+            }
+        }
+    },
+    "scripts": {
+        "dev": "pnpm build --watch",
+        "pack": "vsce package --no-dependencies",
+        "lint": "eslint .",
+        "test": "vitest",
+        "build": "tsup src/index.ts --external vscode",
+        "release": "bumpp --commit --push --tag",
+        "publish": "vsce publish --no-dependencies",
+        "typecheck": "tsc --noEmit",
+        "vscode:prepublish": "pnpm build"
+    },
+    "devDependencies": {
+        "@antfu/eslint-config": "^0.25.1",
+        "@babel/types": "^7.18.4",
+        "@types/lodash": "^4.14.191",
+        "@types/node": "^22.0.0",
+        "@types/vscode": "^1.68.0",
+        "bumpp": "^7.1.1",
+        "canopy": "^0.4.0",
+        "eslint": "^8.17.0",
+        "esno": "^0.16.3",
+        "happy-dom": "^8.9.0",
+        "lodash-es": "^4.17.21",
+        "lodash-unified": "^1.0.3",
+        "pnpm": "^9.15.4",
+        "regulex": "^0.0.5",
+        "rimraf": "^3.0.2",
+        "snapsvg": "^0.5.1",
+        "svg-path-bbox": "^1.2.4",
+        "tsup": "^6.7.0",
+        "typescript": "^4.7.3",
+        "vite": "^6.0.11",
+        "vitest": "^3.0.4",
+        "vsce": "^1.97.0",
+        "eve": "^0.5.4"
+    },
+    "pnpm": {
+        "patchedDependencies": {
+            "happy-dom@8.9.0": "patches/happy-dom@8.9.0.patch"
+        }
     }
-  }
 }

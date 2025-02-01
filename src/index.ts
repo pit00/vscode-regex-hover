@@ -10,147 +10,159 @@ import Regexper from './regexp-visualizer/js/regexper.js';
 
 mockDocument.body.innerHTML = baseHTMLContent;
 interface RegexMatch {
-  document: TextDocument
-  regex: RegExp
-  range: Range
+    document: TextDocument
+    regex: RegExp
+    range: Range
 }
 
 export function activate(context: ExtensionContext) {
-  Log.info(`${EXT_NAME} activated! `);
-  // start listening settings
-  initialSetting();
-
-  const smallNumberDecorationType = window.createTextEditorDecorationType({
-    borderWidth: '0 0 1px 0',
-    borderStyle: 'dashed',
-    borderRadius: '3px',
-    overviewRulerColor: 'blue',
-    overviewRulerLane: OverviewRulerLane.Right,
-    textDecoration: 'ababababa',
-    before: {
-      borderColor: '#f00',
-    },
-    after: {
-      borderColor: '#00f',
-    },
-    light: {
-      // this color will be used in light color themes
-      borderColor: 'darkblue',
-    },
-    dark: {
-      // this color will be used in dark color themes
-      borderColor: 'lightblue',
-    },
-  });
-
-  let activeEditor = window.activeTextEditor;
-  const regEx = /(^|\s|[()={},:?;])(\/((?:\\\/|\[[^\]]*\]|[^/])+)\/([gimuy]*))(\s|[()={},:?;]|$)/g;
-
-  async function updateDecorations() {
-    if (!activeEditor) {
-      return;
-    }
-
-    const matches = await findRegexes(activeEditor.document);
-
-    activeEditor.setDecorations(smallNumberDecorationType, matches);
-  }
-
-  async function createRegexMatch(document: TextDocument, line: number, match: RegExpExecArray) {
-    const regex = createRegex(match[3], match[4]);
-    if (regex) {
-      const regexStr = regex.toString();
-
-      const regexper = new Regexper(mockDocument.body);
-
-      await regexper.showExpression(regexStr);
-
-      const svgParentContainer = regexper.svgContainer.querySelector('svg');
-
-      svgParentContainer.removeChild(svgParentContainer.querySelector('metadata'));
-
-      const originContent = svgParentContainer.outerHTML;
-      const base64SVGStr = svg64(originContent);
-
-      const result = base64SVGStr;
-
-      const dom = `<img src="${result}" /><br/>[Open in the browser](https://regexper.com/#${encodeURIComponent(regexStr)})`;
-      const message = new MarkdownString(dom);
-
-      message.isTrusted = true;
-      message.supportHtml = true;
-
-      return {
-        document,
-        regex,
-        range: new Range(line, match.index + match[1].length, line, match.index + match[1].length + match[2].length),
-        hoverMessage: message,
-      };
-    }
-  }
-
-  function createRegex(pattern: string, flags: string) {
-    try {
-      return new RegExp(pattern, flags);
-    } catch (e) {
-      // discard
-    }
-  }
-
-  async function findRegexes(document: TextDocument) {
-    const matches: RegexMatch[] = [];
-    for (let i = 0; i < document.lineCount; i++) {
-      const line = document.lineAt(i);
-      let match: RegExpExecArray | null;
-      const regex = regEx;
-      regex.lastIndex = 0;
-      const text = line.text.substr(0, 1000);
-      // eslint-disable-next-line no-cond-assign
-      while ((match = regex.exec(text))) {
-        const result = await createRegexMatch(document, i, match);
-        if (result) {
-          matches.push(result);
+    Log.info(`${EXT_NAME} activated! `);
+    // start listening settings
+    initialSetting();
+    
+    const smallNumberDecorationType = window.createTextEditorDecorationType({
+        borderWidth: '0 0 1px 0',
+        borderStyle: 'dashed',
+        // borderRadius: '3px',
+        // overviewRulerColor: 'blue',
+        // overviewRulerLane: OverviewRulerLane.Right,
+        // textDecoration: '',
+        // before: {
+        //     borderColor: '#f00',
+        // },
+        // after: {
+        //     borderColor: '#00f',
+        // },
+        light: { // this color will be used in light color themes
+            borderColor: 'darkblue'
+        },
+        dark: { // this color will be used in dark color themes
+            borderColor: 'lightblue'
+            // borderColor: '#80CC40'
+        },
+    });
+    // /a/g
+    let activeEditor = window.activeTextEditor;
+    const regEx = /(^|\s|[()={},:?;])(\/((?:\\\/|\[[^\]]*\]|[^/])+)\/([gimuy]+))(\s|[()={},:?;]|$)/g;
+    // const regEx = /(^|\s|[()={},:?;])(\/((?:\\\/|\[[^\]]*\]|[^/])+)\/([gimuy]*))(\s|[()={},:?;]|$)/g;
+    async function updateDecorations() {
+        if (!activeEditor) {
+            return;
         }
-      }
+        
+        const matches = await findRegexes(activeEditor.document);
+        
+        activeEditor.setDecorations(smallNumberDecorationType, matches);
     }
-    return matches;
-  }
-
-  let timeout: NodeJS.Timer | undefined;
-
-  function triggerUpdateDecorations(throttle = false) {
-    if (timeout) {
-      clearTimeout(timeout);
-      timeout = undefined;
+    
+    async function createRegexMatch(document: TextDocument, line: number, match: RegExpExecArray) {
+        const regex = createRegex(match[3], match[4]);
+        if (regex) {
+            const regexStr = regex.toString();
+            
+            const regexper = new Regexper(mockDocument.body);
+            
+            await regexper.showExpression(regexStr);
+            
+            const svgParentContainer = regexper.svgContainer.querySelector('svg');
+            
+            svgParentContainer.removeChild(svgParentContainer.querySelector('metadata'));
+            
+            let originContent = svgParentContainer.outerHTML;
+            
+            // Dark Theme
+            console.log("CommandService#executeCommandDEV ❯", [workspace.getConfiguration("regex-hover").get("darkTheme")]);
+            
+            if(workspace.getConfiguration("regex-hover").get("darkTheme")){
+                originContent = originContent.replace(/background-color: #fff;/g, "background-color: #000000")
+                originContent = originContent.replace(/stroke: #000;/g, "stroke: #FFFFFF;")
+                originContent = originContent.replace(/<text /g, "<text fill=\"#FFFFFF\" ")
+                // originContent = originContent.replace(/fill: #000;/g, "fill: #FFFFFF;")
+                // console.log("CommandService#executeCommandDEV ❯", [originContent]);
+            }
+            
+            const base64SVGStr = svg64(originContent);
+            const result = base64SVGStr;
+            
+            // Another site + emoji
+            const dom = `<img src="${result}" /><br/>[🪲 Debug](https://regex101.com) | [👁️ Visualize](https://regex-vis.com/?r=${encodeURIComponent(regexStr)})`;
+            
+            const message = new MarkdownString(dom);
+            
+            message.isTrusted = true;
+            message.supportHtml = true;
+            
+            return {
+                document,
+                regex,
+                range: new Range(line, match.index + match[1].length, line, match.index + match[1].length + match[2].length),
+                hoverMessage: message,
+            };
+        }
     }
-    if (throttle) {
-      timeout = setTimeout(updateDecorations, 500);
-    } else {
-      updateDecorations();
+    
+    function createRegex(pattern: string, flags: string) {
+        try {
+            return new RegExp(pattern, flags);
+        } catch (e) {
+            // discard
+        }
     }
-  }
-
-  if (activeEditor) {
-    triggerUpdateDecorations();
-  }
-
-  window.onDidChangeActiveTextEditor((editor) => {
-    activeEditor = editor;
-    if (editor) {
-      triggerUpdateDecorations();
+    
+    async function findRegexes(document: TextDocument) {
+        const matches: RegexMatch[] = [];
+        for (let i = 0; i < document.lineCount; i++) {
+            const line = document.lineAt(i);
+            let match: RegExpExecArray | null;
+            const regex = regEx;
+            regex.lastIndex = 0;
+            const text = line.text.substr(0, 1000);
+            // eslint-disable-next-line no-cond-assign
+            while ((match = regex.exec(text))) {
+                const resultf = await createRegexMatch(document, i, match);
+                if (resultf) {
+                    matches.push(resultf);
+                }
+            }
+        }
+        return matches;
     }
-  }, null, context.subscriptions);
-
-  workspace.onDidChangeTextDocument((event) => {
-    if (activeEditor && event.document === activeEditor.document) {
-      triggerUpdateDecorations(true);
+    
+    let timeout: NodeJS.Timer | undefined;
+    
+    function triggerUpdateDecorations(throttle = false) {
+        if (timeout) {
+            clearTimeout(timeout);
+            timeout = undefined;
+        }
+        if (throttle) {
+            timeout = setTimeout(updateDecorations, 500);
+        } else {
+            updateDecorations();
+        }
     }
-  }, null, context.subscriptions);
+    
+    if (activeEditor) {
+        triggerUpdateDecorations();
+    }
+    
+    window.onDidChangeActiveTextEditor((editor) => {
+        activeEditor = editor;
+        if (editor) {
+            triggerUpdateDecorations();
+        }
+    }, null, context.subscriptions);
+    
+    workspace.onDidChangeTextDocument((event) => {
+        if (activeEditor && event.document === activeEditor.document) {
+            triggerUpdateDecorations(true);
+        }
+    }, null, context.subscriptions);
 }
 
 // process exit;
 export function deactivate() {
-  disposeSettingListener();
-
-  Log.info(`${EXT_NAME} deactivate! `);
+    disposeSettingListener();
+    
+    Log.info(`${EXT_NAME} deactivate! `);
 }

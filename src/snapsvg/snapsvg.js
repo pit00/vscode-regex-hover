@@ -47,7 +47,7 @@ import { mockWindow as window } from "../constant";
 
    = (object) array of returned values from the listeners. Array has two methods `.firstDefined()` and `.lastDefined()` to get first or last not `undefined` value.
   \*/
-  eve = function (name, scope) {
+  let eve = function (name, scope) {
     var e = events,
       oldstop = stop,
       args = Array.prototype.slice.call(arguments, 2),

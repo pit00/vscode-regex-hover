@@ -12,6 +12,4 @@ Hover over a regular expression to display:
 
 <img width="763" alt="image" src="https://github.com/linghaoSu/vscode-regex-visualizer/assets/56526981/614e9505-a40a-42f9-952c-a1fadd9c8a06">
 
-## License
-
-[MIT](./LICENSE) License © 2023
+* Ensure that `editor.hover.enabled` is enabled
