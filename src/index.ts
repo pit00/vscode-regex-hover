@@ -71,14 +71,11 @@ export function activate(context: ExtensionContext) {
             let originContent = svgParentContainer.outerHTML;
             
             // Dark Theme
-            console.log("CommandService#executeCommandDEV ❯", [workspace.getConfiguration("regex-hover").get("darkTheme")]);
-            
             if(workspace.getConfiguration("regex-hover").get("darkTheme")){
                 originContent = originContent.replace(/background-color: #fff;/g, "background-color: #000000")
                 originContent = originContent.replace(/stroke: #000;/g, "stroke: #FFFFFF;")
                 originContent = originContent.replace(/<text /g, "<text fill=\"#FFFFFF\" ")
                 // originContent = originContent.replace(/fill: #000;/g, "fill: #FFFFFF;")
-                // console.log("CommandService#executeCommandDEV ❯", [originContent]);
             }
             
             const base64SVGStr = svg64(originContent);
