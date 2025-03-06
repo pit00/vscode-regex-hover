@@ -1,14 +1,18 @@
 import type { ExtensionContext, TextDocument } from 'vscode';
-import { MarkdownString, OverviewRulerLane, Range, window, workspace } from 'vscode';
+import { MarkdownString, OverviewRulerLane, Range, window, workspace, env, Uri } from 'vscode';
 import { disposeSettingListener, initialSetting } from './settings';
 import { Log } from './log';
-import { EXT_NAME, baseHTMLContent, mockDocument } from './constant';
+import { EXT_NAME, baseHTMLContent, baseHTMLContentDark, mockDocument } from './constant';
 import { svg64 } from './svg64';
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import Regexper from './regexp-visualizer/js/regexper.js';
 
-mockDocument.body.innerHTML = baseHTMLContent;
+if(workspace.getConfiguration("regex-hover").get("darkTheme")){
+    mockDocument.body.innerHTML = baseHTMLContentDark;
+} else {
+    mockDocument.body.innerHTML = baseHTMLContent;
+}
 interface RegexMatch {
     document: TextDocument
     regex: RegExp
@@ -41,9 +45,8 @@ export function activate(context: ExtensionContext) {
             // borderColor: '#80CC40'
         },
     });
-    // /a/g
     let activeEditor = window.activeTextEditor;
-    const regEx = /(^|\s|[()={},:?;])(\/((?:\\\/|\[[^\]]*\]|[^/])+)\/([gimuy]+))(\s|[()={},:?;]|$)/g;
+    const regEx = /(^|\s|[<>\[\]()={},:?;'"`\-+])(\/((?:\\\/|\[[^\]]*\]|[^/])+)\/([gimuy]+))(\s|[<>\[\]()={},:?;'"`\-+]|$)/g;
     // const regEx = /(^|\s|[()={},:?;])(\/((?:\\\/|\[[^\]]*\]|[^/])+)\/([gimuy]*))(\s|[()={},:?;]|$)/g;
     async function updateDecorations() {
         if (!activeEditor) {
@@ -58,10 +61,17 @@ export function activate(context: ExtensionContext) {
     async function createRegexMatch(document: TextDocument, line: number, match: RegExpExecArray) {
         const regex = createRegex(match[3], match[4]);
         if (regex) {
-            const regexStr = regex.toString();
+            var regexBase = regex.toString();
+            var regexStr = regexBase;
+            
+            // Fix for svg64 (resul string will be shorter, causing some empty spaces)
+            regexStr = regexStr.replace(/</g, "&lt;")
+            regexStr = regexStr.replace(/>/g, "&gt;")
+            regexStr = regexStr.replace(/ /g, "•") //␣
             
             const regexper = new Regexper(mockDocument.body);
             
+            // console.log("CommandService#executeCommandDEV ❯", regexStr);
             await regexper.showExpression(regexStr);
             
             const svgParentContainer = regexper.svgContainer.querySelector('svg');
@@ -72,17 +82,31 @@ export function activate(context: ExtensionContext) {
             
             // Dark Theme
             if(workspace.getConfiguration("regex-hover").get("darkTheme")){
-                originContent = originContent.replace(/background-color: #fff;/g, "background-color: #000000")
-                originContent = originContent.replace(/stroke: #000;/g, "stroke: #FFFFFF;")
-                originContent = originContent.replace(/<text /g, "<text fill=\"#FFFFFF\" ")
-                // originContent = originContent.replace(/fill: #000;/g, "fill: #FFFFFF;")
+                originContent = originContent.replace(/<text /g, "<text fill=\"#CECAC3\" ")
             }
+            
+            // Fix for svg64
+            originContent = originContent.replace(//g, "▯")
             
             const base64SVGStr = svg64(originContent);
             const result = base64SVGStr;
+            var encUrl = encodeURIComponent(regexBase)
+            
+            // console.log("CommandService#executeCommandDEV ❯", regexStr);
+            // console.log("CommandService#executeCommandDEV ❯", originContent);
+            // console.log("CommandService#executeCommandDEV ❯", originContent.match(/<desc>/g));
+            var dom;
             
             // Another site + emoji
-            const dom = `<img src="${result}" /><br/>[🪲 Debug](https://regex101.com) | [👁️ Visualize](https://regex-vis.com/?r=${encodeURIComponent(regexStr)})`;
+            if(originContent.match(/<desc>/g) === null) {
+                // console.log("CommandService#executeCommandDEV ❯", encUrl);
+                // var copyString = env.clipboard.writeText(`${regexBase}`);
+                // dom = `[👁️ Open in browser](https://regex-vis.com/?r=${encUrl})<br/>[📎 Copy](${copyString})`;
+                dom = `[👁️ Open in browser](https://regex-vis.com/?r=${encUrl})`;
+            } else {
+                dom = `[👁️ Open in browser](https://regex-vis.com/?r=${encUrl})<br/><img src="${result}"/>`;
+                // dom = `[Regex Vis](https://regex-vis.com/?r=${encUrl}) | [Regexper](https://regexper.com/#${encUrl})<br/><img src="${result}"/>`;
+            }
             
             const message = new MarkdownString(dom);
             
