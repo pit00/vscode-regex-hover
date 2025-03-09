@@ -62,17 +62,10 @@ export function activate(context: ExtensionContext) {
         const regex = createRegex(match[3], match[4]);
         if (regex) {
             var regexBase = regex.toString();
-            var regexStr = regexBase;
-            
-            // Fix for svg64 (resul string will be shorter, causing some empty spaces)
-            regexStr = regexStr.replace(/</g, "&lt;")
-            regexStr = regexStr.replace(/>/g, "&gt;")
-            regexStr = regexStr.replace(/ /g, "•") //␣
             
             const regexper = new Regexper(mockDocument.body);
             
-            // console.log("CommandService#executeCommandDEV ❯", regexStr);
-            await regexper.showExpression(regexStr);
+            await regexper.showExpression(regexBase);
             
             const svgParentContainer = regexper.svgContainer.querySelector('svg');
             
@@ -85,14 +78,26 @@ export function activate(context: ExtensionContext) {
                 originContent = originContent.replace(/<text /g, "<text fill=\"#CECAC3\" ")
             }
             
-            // Fix for svg64
-            originContent = originContent.replace(//g, "▯")
+            // Fix for svg64 (resul string will be shorter, causing some empty spaces)
+            // console.log("CommandService#executeCommandDEV ❯", "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓");
+            // console.log("CommandService#executeCommandDEV ❯", originContent);
+            // console.log("CommandService#executeCommandDEV ❯", regexBase);
+            originContent = originContent.replace(/(?<=<tspan>).*?(?=<\/tspan>)/g, function(matched: string){
+                // console.log("CommandService#executeCommandDEV ❯", [matched]);
+                
+                matched = matched.replace(/>/g, "&gt;")
+                matched = matched.replace(/</g, "&lt;")
+                matched = matched.replace(//g, "▯")
+                matched = matched.replace(/(?<=[ ])( )|( )(?=[ ])/g, "•") //␣
+                
+                // console.log("CommandService#executeCommandDEV ❯", [matched]);
+                return(matched);
+            })
             
             const base64SVGStr = svg64(originContent);
             const result = base64SVGStr;
             var encUrl = encodeURIComponent(regexBase)
             
-            // console.log("CommandService#executeCommandDEV ❯", regexStr);
             // console.log("CommandService#executeCommandDEV ❯", originContent);
             // console.log("CommandService#executeCommandDEV ❯", originContent.match(/<desc>/g));
             var dom;
