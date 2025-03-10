@@ -1,5 +1,10 @@
 # Change Log
 
+## 0.9.7
+
+Improve solve errors
+Replace non printable characters and spaces (above 2 in a row)
+
 ## 0.9.0
 
 Improve dark theme
