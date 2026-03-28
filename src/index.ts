@@ -89,7 +89,8 @@ export function activate(context: ExtensionContext) {
                 matched = matched.replace(/</g, "&lt;")
                 matched = matched.replace(//g, "▯")
                 matched = matched.replace(/(?<=[ ])( )|( )(?=[ ])/g, "•") //␣
-                
+                matched = matched.replace(/\(\?<=/g, "(?=") // +lookbehind: (?<=
+                matched = matched.replace(/\(\?<!/g, "(?!") // -lookbehind: (?<!
                 // console.log("CommandService#executeCommandDEV ❯", [matched]);
                 return(matched);
             })
