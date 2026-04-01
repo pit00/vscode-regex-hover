@@ -2,9 +2,9 @@
     "name": "regex-hover",
     "publisher": "pit00",
     "displayName": "Regex Hover",
+    "description": "Show a popup with graphical preview of regexes",
     "icon": "icon.png",
-    "version": "1.0.1",
-    "description": "",
+    "version": "1.0.5",
     "license": "MIT",
     "main": "./dist/index.js",
     "repository": {
@@ -35,8 +35,8 @@
     "scripts": {
         "build": "tsup src/index.ts --external vscode --format cjs --target node16",
         "vscode:prepublish": "npm run build",
-        "pack": "npx vsce package --no-dependencies",
-        "publish": "npx vsce publish --no-dependencies",
+        "pack": "vsce package --no-dependencies",
+        "publish": "vsce publish --no-dependencies",
         "lint": "eslint .",
         "test": "vitest",
         "typecheck": "tsc --noEmit"

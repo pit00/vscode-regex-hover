@@ -21,7 +21,7 @@ export const baseHTMLContent = `
             
             .root text,
             .root tspan {
-            font: 12px Arial; }
+            font: 10px monospace; }
             
             .root path {
             fill-opacity: 0;
@@ -107,7 +107,7 @@ export const baseHTMLContentDark = `
             
             .root text,
             .root tspan {
-            font: 12px Arial; }
+            font: 10px monospace; }
             
             .root path {
             fill-opacity: 0;

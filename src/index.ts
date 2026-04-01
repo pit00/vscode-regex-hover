@@ -1,9 +1,12 @@
 import type { ExtensionContext, TextDocument } from 'vscode';
-import { MarkdownString, OverviewRulerLane, Range, window, workspace, env, Uri } from 'vscode';
+import { MarkdownString, Range, window, workspace, Uri, commands } from 'vscode';
 import { disposeSettingListener, initialSetting } from './settings';
 import { Log } from './log';
 import { EXT_NAME, baseHTMLContent, baseHTMLContentDark, mockDocument } from './constant';
 import { svg64 } from './svg64';
+const path = require('path');
+const os = require('os');
+const fs = require('fs');
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-expect-error
 import Regexper from './regexp-visualizer/js/regexper.js';
@@ -23,6 +26,62 @@ export function activate(context: ExtensionContext) {
     Log.info(`${EXT_NAME} activated! `);
     // start listening settings
     initialSetting();
+    
+    const openSvgCmd = commands.registerCommand('regexHover.openSvg', async (svgBase64) => {
+        if (!svgBase64) {
+            window.showErrorMessage("No SVG data received.");
+            return;
+        }
+        
+          // ✅ Extract base64 part
+        const base64 = svgBase64.replace(/^data:image\/svg\+xml;base64,/, '');
+        
+        // (optional safety)
+        if (!base64 || base64 === svgBase64) {
+            window.showErrorMessage("Invalid SVG data format");
+            return;
+        }
+        
+         // ✅ Create temp file
+        const filePath = path.join(os.tmpdir(), `regex-${Date.now()}.svg`);
+        
+        await fs.promises.writeFile(filePath, Buffer.from(base64, 'base64'));
+        
+        const uri = Uri.file(filePath);
+        
+        // ✅ Open in tab
+        await commands.executeCommand('vscode.open', uri);
+    });
+    
+    const downloadSvgCmd = commands.registerCommand('regexHover.downloadSvg', async (svgBase64) => {
+        if (!svgBase64) {
+            window.showErrorMessage("No SVG data received.");
+            return;
+        }
+        
+          // ✅ Extract base64 part
+        const base64 = svgBase64.replace(/^data:image\/svg\+xml;base64,/, '');
+        
+        // (optional safety)
+        if (!base64 || base64 === svgBase64) {
+            window.showErrorMessage("Invalid SVG data format");
+            return;
+        }
+        
+        const uri = await window.showSaveDialog({
+            defaultUri: Uri.file("regex.svg"),
+            filters: { SVG: ["svg"] }
+        });
+        
+        if (!uri) return;
+        
+        const buffer = Buffer.from(base64, 'base64');
+        await workspace.fs.writeFile(uri, buffer);
+        
+        window.showInformationMessage('SVG saved!');
+    });
+    
+    context.subscriptions.push(openSvgCmd, downloadSvgCmd);
     
     const smallNumberDecorationType = window.createTextEditorDecorationType({
         borderWidth: '0 0 1px 0',
@@ -46,7 +105,7 @@ export function activate(context: ExtensionContext) {
         },
     });
     let activeEditor = window.activeTextEditor;
-    const regEx = /(^|\s|[<>\[\]()={},:?;'"`\-+])(\/((?:\\\/|\[[^\]]*\]|[^/])+)\/([gimuy]+))(\s|[<>\[\]()={},:?;'"`\-+]|$)/g;
+    const regEx = /(^|\s|[<>\[\]()={},:?;'"`\-+])(\/((?:\\\/|\[[^\]]*\]|[^/])+)\/([gimuy ]+)?)(\s|[<>\[\]()={},:?;'"`\-+]|$)/g;
     // const regEx = /(^|\s|[()={},:?;])(\/((?:\\\/|\[[^\]]*\]|[^/])+)\/([gimuy]*))(\s|[()={},:?;]|$)/g;
     async function updateDecorations() {
         if (!activeEditor) {
@@ -58,67 +117,77 @@ export function activate(context: ExtensionContext) {
         activeEditor.setDecorations(smallNumberDecorationType, matches);
     }
     
+    function processRegex(str: string) {
+        const matches = str.match(/\(\?<=|\(\?<!|\(\?=|\(\?!/g) || [];
+        
+        const hasBehind = matches.some(t => t === "(?<="|| t === "(?<!");
+        const hasAhead = matches.some(t => t === "(?=" || t === "(?!");
+        if (!(hasBehind && hasAhead)) return hasBehind;
+        
+        // true = behind, false = ahead
+        return matches.map(t => t === "(?<=" || t === "(?<!");
+    }
+    
+    function replaceLookaheadWords(svgText: string, vector: boolean[] | boolean) {
+        if (!vector) return svgText;
+        
+        const pattern = /lookahead/g;
+        
+        // case 1: single boolean
+        if (typeof vector === "boolean") {
+            return vector
+                ? svgText.replace(pattern, "lookbehind")
+                : svgText;
+        }
+        
+        // case 2: array
+        let i = 0;
+        
+        return svgText.replace(pattern, (match) => {
+            const shouldReplace = vector[i++] ?? false;
+            return shouldReplace ? "lookbehind" : match;
+        });
+    }
+    
     async function createRegexMatch(document: TextDocument, line: number, match: RegExpExecArray) {
         const regex = createRegex(match[3], match[4]);
         if (regex) {
-            var regexBase = regex.toString();
+            let regexBase = regex.toString();
+            let looks = processRegex(regexBase)
+            regexBase = regexBase.replace(/\(\?<=/g, "(?=") // +lookbehind: (?<=
+            regexBase = regexBase.replace(/\(\?<!/g, "(?!") // -lookbehind: (?<!
+            regexBase = regexBase.replace(/\(\?<.+?>/g, "(?=") // group label [not treated]
             
             const regexper = new Regexper(mockDocument.body);
-            
             await regexper.showExpression(regexBase);
-            
             const svgParentContainer = regexper.svgContainer.querySelector('svg');
-            
             svgParentContainer.removeChild(svgParentContainer.querySelector('metadata'));
-            
             let originContent = svgParentContainer.outerHTML;
-            
-            // Dark Theme
-            if(workspace.getConfiguration("regex-hover").get("darkTheme")){
-                originContent = originContent.replace(/<text /g, "<text fill=\"#CECAC3\" ")
-            }
-            
-            // Fix for svg64 (resul string will be shorter, causing some empty spaces)
-            // console.log("CommandService#executeCommandDEV ❯", "▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓▓");
-            // console.log("CommandService#executeCommandDEV ❯", originContent);
-            // console.log("CommandService#executeCommandDEV ❯", regexBase);
+            originContent = originContent.replace(/<text /g, "<text fill=\"#CECAC3\" ")
             originContent = originContent.replace(/(?<=<tspan>).*?(?=<\/tspan>)/g, function(matched: string){
-                // console.log("CommandService#executeCommandDEV ❯", [matched]);
-                
                 matched = matched.replace(/>/g, "&gt;")
                 matched = matched.replace(/</g, "&lt;")
                 matched = matched.replace(//g, "▯")
                 matched = matched.replace(/(?<=[ ])( )|( )(?=[ ])/g, "•") //␣
-                matched = matched.replace(/\(\?<=/g, "(?=") // +lookbehind: (?<=
-                matched = matched.replace(/\(\?<!/g, "(?!") // -lookbehind: (?<!
-                // console.log("CommandService#executeCommandDEV ❯", [matched]);
                 return(matched);
             })
+            originContent = replaceLookaheadWords(originContent, looks)
             
             const base64SVGStr = svg64(originContent);
             const result = base64SVGStr;
             var encUrl = encodeURIComponent(regexBase)
-            
-            // console.log("CommandService#executeCommandDEV ❯", originContent);
-            // console.log("CommandService#executeCommandDEV ❯", originContent.match(/<desc>/g));
             var dom;
+            let arg = encodeURIComponent(JSON.stringify(result));
             
             // Another site + emoji
             if(originContent.match(/<desc>/g) === null) {
-                // console.log("CommandService#executeCommandDEV ❯", encUrl);
-                // var copyString = env.clipboard.writeText(`${regexBase}`);
-                // dom = `[👁️ Open in browser](https://regex-vis.com/?r=${encUrl})<br/>[📎 Copy](${copyString})`;
-                dom = `[👁️ Open in browser](https://regex-vis.com/?r=${encUrl})`;
+                dom = `[🪲 Debug](https://regex-vis.com/?r=${encUrl}) | [🔗 URL](https://regexper.com/#${encUrl})`;
             } else {
-                dom = `[👁️ Open in browser](https://regex-vis.com/?r=${encUrl})<br/><img src="${result}"/>`;
-                // dom = `[Regex Vis](https://regex-vis.com/?r=${encUrl}) | [Regexper](https://regexper.com/#${encUrl})<br/><img src="${result}"/>`;
+                dom = `[🪲 Debug](https://regex-vis.com/?r=${encUrl}) | [🖼️ Open](command:regexHover.openSvg?${arg}) | [⬇️ Download](command:regexHover.downloadSvg?${arg}) | [🔗 URL](https://regexper.com/#${encUrl})<br/><img src="${result}"/>`;
             }
-            
             const message = new MarkdownString(dom);
-            
             message.isTrusted = true;
             message.supportHtml = true;
-            
             return {
                 document,
                 regex,
@@ -138,20 +207,28 @@ export function activate(context: ExtensionContext) {
     
     async function findRegexes(document: TextDocument) {
         const matches: RegexMatch[] = [];
-        for (let i = 0; i < document.lineCount; i++) {
-            const line = document.lineAt(i);
-            let match: RegExpExecArray | null;
-            const regex = regEx;
-            regex.lastIndex = 0;
-            const text = line.text.substr(0, 1000);
-            // eslint-disable-next-line no-cond-assign
-            while ((match = regex.exec(text))) {
-                const resultf = await createRegexMatch(document, i, match);
-                if (resultf) {
-                    matches.push(resultf);
-                }
+        
+        const editor = window.activeTextEditor;
+        if (!editor || editor.document !== document) {
+            return matches;
+        }
+        
+        const lineNumber = editor.selection.active.line;
+        const line = document.lineAt(lineNumber);
+        
+        let match: RegExpExecArray | null;
+        const regex = regEx;
+        regex.lastIndex = 0;
+        
+        const text = line.text.substr(0, 1000);
+        
+        while ((match = regex.exec(text))) {
+            const resultf = await createRegexMatch(document, lineNumber, match);
+            if (resultf) {
+                matches.push(resultf);
             }
         }
+        
         return matches;
     }
     
